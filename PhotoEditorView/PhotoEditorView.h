@@ -10,6 +10,8 @@
 
 @interface PhotoEditorView : UIView
 
+@property (nonatomic, assign) BOOL hasMaskLayer;
+
 /**
  *
  * Set the image to edit
