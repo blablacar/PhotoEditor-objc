@@ -37,6 +37,7 @@
         self.initialCenterImageView = CGPointZero;
         
         [self imageView];
+        [self addMaskLayer];
         
         UIPinchGestureRecognizer *pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self
                                                                                                      action:@selector(didPinchView:)];
@@ -53,7 +54,7 @@
 {
     [super layoutSubviews];
     
-    [self addMaskLayer];
+    [self updateMaskLayerPosition];
     
     if (self.imageView.image.size.width > self.frame.size.width) {
         CGRect frame    = self.imageView.frame;
@@ -75,17 +76,39 @@
     self.imageView.image = image;
 }
 
+- (void)setHasMaskLayer:(BOOL)hasMaskLayer
+{
+    _hasMaskLayer = hasMaskLayer;
+    
+    if (_hasMaskLayer) {
+        [self addMaskLayer];
+    }
+}
+
 #pragma mark - Public methods - Getter
 
 - (UIImage*)getFinalImage
 {
-    [self.maskLayer removeFromSuperlayer];
+    if ((self.hasMaskLayer) && (nil != _maskLayer.superlayer)) {
+        [self.maskLayer removeFromSuperlayer];
+    }
     
-    CGFloat squareSize  = [self getMaskLayerSize];
-    CGFloat posX        = self.frame.size.width/2 - squareSize/2;
-    CGFloat posY        = self.frame.size.height/2 - squareSize/2;
+    CGFloat squareSizeWidth     = 0.0f;
+    CGFloat squareSizeHeight    = 0.0f;
+    CGFloat posX                = 0.0f;
+    CGFloat posY                = 0.0f;
     
-    UIGraphicsBeginImageContextWithOptions(CGSizeMake(squareSize, squareSize), NO, 0.0f);
+    if (self.hasMaskLayer) {
+        squareSizeWidth     = [self getMaskLayerSize];
+        squareSizeHeight    = squareSizeWidth;
+        posX                = self.frame.size.width/2 - squareSizeWidth/2;
+        posY                = self.frame.size.width/2 - squareSizeHeight/2;
+    } else {
+        squareSizeWidth     = self.frame.size.width;
+        squareSizeHeight    = self.frame.size.height;
+    }
+    
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(squareSizeWidth, squareSizeHeight), NO, 0.0f);
     
     CGContextRef context = UIGraphicsGetCurrentContext();
     CGContextTranslateCTM(context, -posX, -posY);
@@ -94,7 +117,7 @@
     
     UIGraphicsEndImageContext();
     
-    [self.layer addSublayer:self.maskLayer];
+    [self addMaskLayer];
     
     return finalImage;
 }
@@ -209,7 +232,7 @@
 
 - (void)addMaskLayer
 {
-    if (nil == _maskLayer.superlayer) {
+    if ((self.hasMaskLayer) && (nil == _maskLayer.superlayer)) {
         [self.layer addSublayer:self.maskLayer];
     }
 }
@@ -225,6 +248,28 @@
     }
     
     return squareSize;
+}
+
+- (void)updateMaskLayerPosition
+{
+    if (NO == self.hasMaskLayer) {
+        return;
+    }
+    
+    CGFloat squareSize = [self getMaskLayerSize];
+    CGRect circleFrame = CGRectMake(self.frame.size.width/2 - squareSize/2,
+                                    self.frame.size.height/2 - squareSize/2,
+                                    squareSize,
+                                    squareSize);
+    
+    UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds
+                                                             cornerRadius:0.0f];
+    UIBezierPath *circlePath    = [UIBezierPath bezierPathWithRoundedRect:circleFrame
+                                                             cornerRadius:circleFrame.size.width];
+    [path appendPath:circlePath];
+    [path setUsesEvenOddFillRule:YES];
+    
+    self.maskLayer.path = path.CGPath;
 }
 
 #pragma mark - Getter
@@ -244,21 +289,7 @@
 - (CAShapeLayer*)maskLayer
 {
     if (nil == _maskLayer) {
-        CGFloat squareSize = [self getMaskLayerSize];
-        CGRect circleFrame = CGRectMake(self.frame.size.width/2 - squareSize/2,
-                                        self.frame.size.height/2 - squareSize/2,
-                                        squareSize,
-                                        squareSize);
-        
-        UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds
-                                                                 cornerRadius:0.0f];
-        UIBezierPath *circlePath    = [UIBezierPath bezierPathWithRoundedRect:circleFrame
-                                                                 cornerRadius:circleFrame.size.width];
-        [path appendPath:circlePath];
-        [path setUsesEvenOddFillRule:YES];
-        
         _maskLayer              = [CAShapeLayer layer];
-        _maskLayer.path         = path.CGPath;
         _maskLayer.fillRule     = kCAFillRuleEvenOdd;
         _maskLayer.fillColor    = [UIColor blackColor].CGColor;
         _maskLayer.opacity      = 0.8f;
