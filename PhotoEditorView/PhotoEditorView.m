@@ -33,6 +33,8 @@
         self.clipsToBounds          = YES;
         self.exclusiveTouch         = YES;
         
+        self.maskShape = PhotoEditorMask_Rounded;
+        
         self.initialTouchPoint      = CGPointZero;
         self.initialCenterImageView = CGPointZero;
         
@@ -76,6 +78,13 @@
     self.imageView.image = image;
 }
 
+- (void)setMaskShape:(NSUInteger)maskShape
+{
+    _maskShape = maskShape;
+    if (_hasMaskLayer)
+        [self updateMaskLayerPosition];
+}
+
 - (void)setHasMaskLayer:(BOOL)hasMaskLayer
 {
     _hasMaskLayer = hasMaskLayer;
@@ -93,25 +102,20 @@
         [self.maskLayer removeFromSuperlayer];
     }
     
-    CGFloat squareSizeWidth     = 0.0f;
-    CGFloat squareSizeHeight    = 0.0f;
-    CGFloat posX                = 0.0f;
-    CGFloat posY                = 0.0f;
+    CGSize maskSize = CGSizeZero;
+    CGPoint position = CGPointZero;
     
     if (self.hasMaskLayer) {
-        squareSizeWidth     = [self getMaskLayerSize];
-        squareSizeHeight    = squareSizeWidth;
-        posX                = self.frame.size.width/2 - squareSizeWidth/2;
-        posY                = self.frame.size.width/2 - squareSizeHeight/2;
+        maskSize = [self getMaskLayerSize];
+        position = CGPointMake(self.frame.size.width/2 - maskSize.width/2, self.frame.size.width/2 - maskSize.height/2);
     } else {
-        squareSizeWidth     = self.frame.size.width;
-        squareSizeHeight    = self.frame.size.height;
+        maskSize = self.frame.size;
     }
     
-    UIGraphicsBeginImageContextWithOptions(CGSizeMake(squareSizeWidth, squareSizeHeight), NO, 0.0f);
+    UIGraphicsBeginImageContextWithOptions(maskSize, NO, 0.0f);
     
     CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextTranslateCTM(context, -posX, -posY);
+    CGContextTranslateCTM(context, -position.x, -position.y);
     [self.layer renderInContext:context];
     UIImage *finalImage = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -234,20 +238,39 @@
 {
     if ((self.hasMaskLayer) && (nil == _maskLayer.superlayer)) {
         [self.layer addSublayer:self.maskLayer];
+        [self updateMaskLayerPosition];
     }
 }
 
-- (CGFloat)getMaskLayerSize
+- (CGSize) getMaskLayerSize
 {
-    CGFloat squareSize = 0.0f;
-    
-    if (self.frame.size.height < self.frame.size.width) {
-        squareSize = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.height / 100;
-    } else {
-        squareSize = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.width / 100;
+    switch (self.maskShape) {
+        case PhotoEditorMask_Rounded:
+        {
+            CGSize squareSize = CGSizeZero;
+            
+            if (self.frame.size.height < self.frame.size.width) {
+                squareSize.height = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.height / 100;
+            } else {
+                squareSize.height = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.width / 100;
+            }
+            squareSize.width = squareSize.height;
+            
+            return squareSize;
+        }
+            break;
+            
+        case PhotoEditorMask_Rectangle:
+        {
+            return CGSizeMake(PERCENT_SIZE_FOR_RECTANGLE * self.bounds.size.width / 100,
+                              PERCENT_SIZE_FOR_RECTANGLE * self.bounds.size.height / 100);
+        }
+            break;
+        default:
+            return CGSizeZero;
+            break;
     }
-    
-    return squareSize;
+
 }
 
 - (void)updateMaskLayerPosition
@@ -256,20 +279,39 @@
         return;
     }
     
-    CGFloat squareSize = [self getMaskLayerSize];
-    CGRect circleFrame = CGRectMake(self.frame.size.width/2 - squareSize/2,
-                                    self.frame.size.height/2 - squareSize/2,
-                                    squareSize,
-                                    squareSize);
+    if (self.maskShape == PhotoEditorMask_Rounded) {
+        
+        CGSize squareSize = [self getMaskLayerSize];
+        CGRect circleFrame = CGRectMake(self.frame.size.width/2 - squareSize.width/2,
+                                        self.frame.size.height/2 - squareSize.height/2,
+                                        squareSize.width,
+                                        squareSize.height);
+        
+        UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds
+                                                                 cornerRadius:0.0f];
+        UIBezierPath *circlePath    = [UIBezierPath bezierPathWithRoundedRect:circleFrame
+                                                                 cornerRadius:circleFrame.size.width];
+        [path appendPath:circlePath];
+        [path setUsesEvenOddFillRule:YES];
+        
+        self.maskLayer.path = path.CGPath;
+    }
     
-    UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds
-                                                             cornerRadius:0.0f];
-    UIBezierPath *circlePath    = [UIBezierPath bezierPathWithRoundedRect:circleFrame
-                                                             cornerRadius:circleFrame.size.width];
-    [path appendPath:circlePath];
-    [path setUsesEvenOddFillRule:YES];
-    
-    self.maskLayer.path = path.CGPath;
+    if (self.maskShape == PhotoEditorMask_Rectangle) {
+        
+        CGSize rectangleSize = [self getMaskLayerSize];
+        CGRect rectangleFrame = CGRectMake(self.bounds.size.width/2 - rectangleSize.width/2,
+                                        self.bounds.size.height/2 - rectangleSize.height/2,
+                                        rectangleSize.width,
+                                        rectangleSize.height);
+        UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds cornerRadius:0.0f];
+        UIBezierPath *rectanglePath = [UIBezierPath bezierPathWithRoundedRect:rectangleFrame cornerRadius:0.0];
+        [path appendPath:rectanglePath];
+
+        [path setUsesEvenOddFillRule:YES];
+        
+        self.maskLayer.path = path.CGPath;
+    }
 }
 
 #pragma mark - Getter

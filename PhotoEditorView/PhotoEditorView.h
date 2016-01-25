@@ -8,8 +8,12 @@
 
 #import <UIKit/UIKit.h>
 
+#define PhotoEditorMask_Rounded     1
+#define PhotoEditorMask_Rectangle   2
+
 @interface PhotoEditorView : UIView
 
+@property (nonatomic) NSUInteger maskShape;
 @property (nonatomic, assign) BOOL hasMaskLayer;
 
 /**
