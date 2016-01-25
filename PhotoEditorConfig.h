@@ -20,6 +20,15 @@
 
 /**
  *
+ * Constant to compute the crop rectangle zone diameter
+ *
+ * @warning Must be a percentage (between 1 and 100+)
+ *
+ */
+#define PERCENT_SIZE_FOR_RECTANGLE    85
+
+/**
+ *
  * Percentage of scale authorized when zoom out
  *
  * @warning Must be a percentage (between 1 and 100+)

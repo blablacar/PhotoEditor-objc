@@ -7,10 +7,12 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "EnumPhotoEditorMaskType.h"
 
 @interface PhotoEditorView : UIView
 
-@property (nonatomic, assign) BOOL hasMaskLayer;
+@property (nonatomic) PhotoEditorMaskType   maskShape;
+@property (nonatomic, assign) BOOL          hasMaskLayer;
 
 /**
  *

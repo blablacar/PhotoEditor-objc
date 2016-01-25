@@ -33,6 +33,8 @@
         self.clipsToBounds          = YES;
         self.exclusiveTouch         = YES;
         
+        self.maskShape = PhotoEditorMaskTypeRounded;
+        
         self.initialTouchPoint      = CGPointZero;
         self.initialCenterImageView = CGPointZero;
         
@@ -76,6 +78,14 @@
     self.imageView.image = image;
 }
 
+- (void)setMaskShape:(PhotoEditorMaskType)maskShape
+{
+    _maskShape = maskShape;
+    if (_hasMaskLayer) {
+        [self updateMaskLayerPosition];
+    }
+}
+
 - (void)setHasMaskLayer:(BOOL)hasMaskLayer
 {
     _hasMaskLayer = hasMaskLayer;
@@ -93,25 +103,20 @@
         [self.maskLayer removeFromSuperlayer];
     }
     
-    CGFloat squareSizeWidth     = 0.0f;
-    CGFloat squareSizeHeight    = 0.0f;
-    CGFloat posX                = 0.0f;
-    CGFloat posY                = 0.0f;
+    CGSize maskSize     = CGSizeZero;
+    CGPoint position    = CGPointZero;
     
     if (self.hasMaskLayer) {
-        squareSizeWidth     = [self getMaskLayerSize];
-        squareSizeHeight    = squareSizeWidth;
-        posX                = self.frame.size.width/2 - squareSizeWidth/2;
-        posY                = self.frame.size.width/2 - squareSizeHeight/2;
+        maskSize = [self getMaskLayerSize];
+        position = CGPointMake(self.frame.size.width/2 - maskSize.width/2, self.frame.size.width/2 - maskSize.height/2);
     } else {
-        squareSizeWidth     = self.frame.size.width;
-        squareSizeHeight    = self.frame.size.height;
+        maskSize = self.frame.size;
     }
     
-    UIGraphicsBeginImageContextWithOptions(CGSizeMake(squareSizeWidth, squareSizeHeight), NO, 0.0f);
+    UIGraphicsBeginImageContextWithOptions(maskSize, NO, 0.0f);
     
     CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextTranslateCTM(context, -posX, -posY);
+    CGContextTranslateCTM(context, -position.x, -position.y);
     [self.layer renderInContext:context];
     UIImage *finalImage = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -234,20 +239,36 @@
 {
     if ((self.hasMaskLayer) && (nil == _maskLayer.superlayer)) {
         [self.layer addSublayer:self.maskLayer];
+        [self updateMaskLayerPosition];
     }
 }
 
-- (CGFloat)getMaskLayerSize
+- (CGSize)getMaskLayerSize
 {
-    CGFloat squareSize = 0.0f;
-    
-    if (self.frame.size.height < self.frame.size.width) {
-        squareSize = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.height / 100;
-    } else {
-        squareSize = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.width / 100;
+    switch (self.maskShape) {
+        case PhotoEditorMaskTypeRounded:
+        {
+            CGSize squareSize = CGSizeZero;
+            
+            if (self.frame.size.height < self.frame.size.width) {
+                squareSize.height = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.height / 100;
+            } else {
+                squareSize.height = PERCENT_SIZE_FOR_ROUND_INDICATOR * self.frame.size.width / 100;
+            }
+            squareSize.width = squareSize.height;
+            
+            return squareSize;
+        }
+            
+        case PhotoEditorMaskTypeRectangle:
+        {
+            return CGSizeMake(PERCENT_SIZE_FOR_RECTANGLE * self.bounds.size.width / 100,
+                              PERCENT_SIZE_FOR_RECTANGLE * self.bounds.size.height / 100);
+        }
+
+        default:
+            return CGSizeZero;
     }
-    
-    return squareSize;
 }
 
 - (void)updateMaskLayerPosition
@@ -256,17 +277,27 @@
         return;
     }
     
-    CGFloat squareSize = [self getMaskLayerSize];
-    CGRect circleFrame = CGRectMake(self.frame.size.width/2 - squareSize/2,
-                                    self.frame.size.height/2 - squareSize/2,
-                                    squareSize,
-                                    squareSize);
+    CGSize maskSize         = [self getMaskLayerSize];
+    CGRect maskFrame        = CGRectMake(self.frame.size.width/2 - maskSize.width/2,
+                                         self.frame.size.height/2 - maskSize.height/2,
+                                         maskSize.width,
+                                         maskSize.height);
+    UIBezierPath *path      = [UIBezierPath bezierPathWithRoundedRect:self.bounds
+                                                         cornerRadius:0.0f];
+    UIBezierPath *maskPath  = nil;
     
-    UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds
-                                                             cornerRadius:0.0f];
-    UIBezierPath *circlePath    = [UIBezierPath bezierPathWithRoundedRect:circleFrame
-                                                             cornerRadius:circleFrame.size.width];
-    [path appendPath:circlePath];
+    switch (self.maskShape) {
+        case PhotoEditorMaskTypeRounded:
+            maskPath = [UIBezierPath bezierPathWithRoundedRect:maskFrame cornerRadius:maskFrame.size.width];
+            break;
+        case PhotoEditorMaskTypeRectangle:
+            maskPath = [UIBezierPath bezierPathWithRoundedRect:maskFrame cornerRadius:0.0f];
+            break;
+        default:
+            break;
+    }
+    
+    [path appendPath:maskPath];
     [path setUsesEvenOddFillRule:YES];
     
     self.maskLayer.path = path.CGPath;
