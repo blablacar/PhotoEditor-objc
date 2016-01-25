@@ -33,7 +33,7 @@
         self.clipsToBounds          = YES;
         self.exclusiveTouch         = YES;
         
-        self.maskShape = PhotoEditorMask_Rounded;
+        self.maskShape = PhotoEditorMaskTypeRounded;
         
         self.initialTouchPoint      = CGPointZero;
         self.initialCenterImageView = CGPointZero;
@@ -78,11 +78,12 @@
     self.imageView.image = image;
 }
 
-- (void)setMaskShape:(NSUInteger)maskShape
+- (void)setMaskShape:(PhotoEditorMaskType)maskShape
 {
     _maskShape = maskShape;
-    if (_hasMaskLayer)
+    if (_hasMaskLayer) {
         [self updateMaskLayerPosition];
+    }
 }
 
 - (void)setHasMaskLayer:(BOOL)hasMaskLayer
@@ -102,8 +103,8 @@
         [self.maskLayer removeFromSuperlayer];
     }
     
-    CGSize maskSize = CGSizeZero;
-    CGPoint position = CGPointZero;
+    CGSize maskSize     = CGSizeZero;
+    CGPoint position    = CGPointZero;
     
     if (self.hasMaskLayer) {
         maskSize = [self getMaskLayerSize];
@@ -242,10 +243,10 @@
     }
 }
 
-- (CGSize) getMaskLayerSize
+- (CGSize)getMaskLayerSize
 {
     switch (self.maskShape) {
-        case PhotoEditorMask_Rounded:
+        case PhotoEditorMaskTypeRounded:
         {
             CGSize squareSize = CGSizeZero;
             
@@ -258,19 +259,16 @@
             
             return squareSize;
         }
-            break;
             
-        case PhotoEditorMask_Rectangle:
+        case PhotoEditorMaskTypeRectangle:
         {
             return CGSizeMake(PERCENT_SIZE_FOR_RECTANGLE * self.bounds.size.width / 100,
                               PERCENT_SIZE_FOR_RECTANGLE * self.bounds.size.height / 100);
         }
-            break;
+
         default:
             return CGSizeZero;
-            break;
     }
-
 }
 
 - (void)updateMaskLayerPosition
@@ -279,39 +277,30 @@
         return;
     }
     
-    if (self.maskShape == PhotoEditorMask_Rounded) {
-        
-        CGSize squareSize = [self getMaskLayerSize];
-        CGRect circleFrame = CGRectMake(self.frame.size.width/2 - squareSize.width/2,
-                                        self.frame.size.height/2 - squareSize.height/2,
-                                        squareSize.width,
-                                        squareSize.height);
-        
-        UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds
-                                                                 cornerRadius:0.0f];
-        UIBezierPath *circlePath    = [UIBezierPath bezierPathWithRoundedRect:circleFrame
-                                                                 cornerRadius:circleFrame.size.width];
-        [path appendPath:circlePath];
-        [path setUsesEvenOddFillRule:YES];
-        
-        self.maskLayer.path = path.CGPath;
+    CGSize maskSize         = [self getMaskLayerSize];
+    CGRect maskFrame        = CGRectMake(self.frame.size.width/2 - maskSize.width/2,
+                                         self.frame.size.height/2 - maskSize.height/2,
+                                         maskSize.width,
+                                         maskSize.height);
+    UIBezierPath *path      = [UIBezierPath bezierPathWithRoundedRect:self.bounds
+                                                         cornerRadius:0.0f];
+    UIBezierPath *maskPath  = nil;
+    
+    switch (self.maskShape) {
+        case PhotoEditorMaskTypeRounded:
+            maskPath = [UIBezierPath bezierPathWithRoundedRect:maskFrame cornerRadius:maskFrame.size.width];
+            break;
+        case PhotoEditorMaskTypeRectangle:
+            maskPath = [UIBezierPath bezierPathWithRoundedRect:maskFrame cornerRadius:0.0f];
+            break;
+        default:
+            break;
     }
     
-    if (self.maskShape == PhotoEditorMask_Rectangle) {
-        
-        CGSize rectangleSize = [self getMaskLayerSize];
-        CGRect rectangleFrame = CGRectMake(self.bounds.size.width/2 - rectangleSize.width/2,
-                                        self.bounds.size.height/2 - rectangleSize.height/2,
-                                        rectangleSize.width,
-                                        rectangleSize.height);
-        UIBezierPath *path          = [UIBezierPath bezierPathWithRoundedRect:self.bounds cornerRadius:0.0f];
-        UIBezierPath *rectanglePath = [UIBezierPath bezierPathWithRoundedRect:rectangleFrame cornerRadius:0.0];
-        [path appendPath:rectanglePath];
-
-        [path setUsesEvenOddFillRule:YES];
-        
-        self.maskLayer.path = path.CGPath;
-    }
+    [path appendPath:maskPath];
+    [path setUsesEvenOddFillRule:YES];
+    
+    self.maskLayer.path = path.CGPath;
 }
 
 #pragma mark - Getter
