@@ -97,26 +97,41 @@
 
 #pragma mark - Public methods - Getter
 
-- (UIImage*)getFinalImage
+- (UIImage *)getFinalImage
 {
+    return [self getFinalImageWithScreenScale:NO];
+}
+
+- (UIImage *)getFinalImageWithScreenScale:(BOOL)screenScale
+{
+    CGFloat sizeFactor = screenScale?[UIScreen mainScreen].scale:1.0f;
+    
     if ((self.hasMaskLayer) && (nil != _maskLayer.superlayer)) {
         [self.maskLayer removeFromSuperlayer];
     }
     
     CGSize maskSize     = CGSizeZero;
-    CGPoint position    = CGPointZero;
+    CGPoint maskOrigin    = CGPointZero;
     
     if (self.hasMaskLayer) {
         maskSize = [self getMaskLayerSize];
-        position = CGPointMake(self.frame.size.width/2 - maskSize.width/2, self.frame.size.width/2 - maskSize.height/2);
+        maskOrigin = CGPointMake((self.frame.size.width - maskSize.width)/2,
+                                 (self.frame.size.height - maskSize.height)/2);
     } else {
         maskSize = self.frame.size;
     }
     
+    maskSize.width *= sizeFactor;
+    maskSize.height *= sizeFactor;
+    
+    maskOrigin.x *= sizeFactor;
+    maskOrigin.y *= sizeFactor;
+    
     UIGraphicsBeginImageContextWithOptions(maskSize, NO, 0.0f);
     
     CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextTranslateCTM(context, -position.x, -position.y);
+    CGContextTranslateCTM(context, -maskOrigin.x, -maskOrigin.y);
+    CGContextScaleCTM(context, sizeFactor, sizeFactor);
     [self.layer renderInContext:context];
     UIImage *finalImage = UIGraphicsGetImageFromCurrentImageContext();
     

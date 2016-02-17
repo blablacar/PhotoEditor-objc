@@ -41,11 +41,24 @@
  *
  * Get the image cropped.
  *
- * @warning It will be a squared image cropped from the cropped circle zone
+ * @warning It will be a squared image cropped from the mask zone
  *
  * @return UIImage  image cropped
  *
  */
 - (UIImage*)getFinalImage;
+
+/**
+ *
+ * Get the image cropped.
+ *
+ * @warning It will be a squared image cropped from the mask zone
+ *
+ * @param BOOL  booloean set to YES if you want to extract the pixels, NO to extract the points
+ *
+ * @return UIImage  image cropped
+ *
+ */
+- (UIImage *)getFinalImageWithScreenScale:(BOOL)screenScale;
 
 @end
