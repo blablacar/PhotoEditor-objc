@@ -323,9 +323,10 @@
 - (UIImageView*)imageView
 {
     if (nil == _imageView) {
-        _imageView              = [[UIImageView alloc] initWithImage:nil];
-        _imageView.contentMode  = UIViewContentModeCenter;
-        
+        _imageView              =       [[UIImageView alloc] initWithImage:nil];
+        _imageView.contentMode  =       UIViewContentModeCenter;
+        _imageView.contentScaleFactor = [UIScreen mainScreen].scale;
+
         [self addSubview:_imageView];
     }
     
