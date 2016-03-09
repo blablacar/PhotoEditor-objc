@@ -13,6 +13,7 @@
 @interface PhotoEditorView ()
 
 @property (nonatomic, strong) UIImageView   *imageView;
+@property (nonatomic, strong) UIImage       *orginalImage;
 
 @property (nonatomic, assign) CGPoint       initialTouchPoint;
 @property (nonatomic, assign) CGPoint       initialCenterImageView;
@@ -65,7 +66,7 @@
         
         self.imageView.frame    = frame;
         self.imageView.center   = CGPointMake(self.frame.size.width/2, self.frame.size.height/2);
-        self.imageView.image    = [self.imageView.image imageResizedToSize:frame.size];
+        self.imageView.image    = [self.imageView.image imageResizedToSize:frame.size]; // :-(
     }
 }
 
@@ -75,6 +76,7 @@
 
 - (void)setImage:(UIImage*)image
 {
+    self.orginalImage = image;
     self.imageView.image = image;
 }
 
@@ -139,6 +141,34 @@
     
     [self addMaskLayer];
     
+    return finalImage;
+}
+
+- (UIImage *)getFinalFullImage
+{
+    
+    CGSize viewSize = self.bounds.size;
+    CGSize maskSize = self.hasMaskLayer?[self getMaskLayerSize]:viewSize;
+    
+    CGPoint maskOrigin = CGPointMake((self.frame.size.width - maskSize.width)/2,
+                             (self.frame.size.height - maskSize.height)/2);
+    
+    CGFloat zoomRatio = self.orginalImage.size.width / self.imageView.frame.size.width;
+
+    CGSize finalImageSize = CGSizeMake(maskSize.width * zoomRatio, maskSize.height * zoomRatio);
+    
+    UIGraphicsBeginImageContextWithOptions(finalImageSize, NO, 0.0f);
+    
+    CGPoint imageOrigin = CGPointZero;
+    imageOrigin.x = (self.imageView.frame.origin.x - maskOrigin.x) * zoomRatio;
+    imageOrigin.y = (self.imageView.frame.origin.y - maskOrigin.y) * zoomRatio;
+
+    [self.orginalImage drawAtPoint:imageOrigin];
+    
+    UIImage *finalImage = UIGraphicsGetImageFromCurrentImageContext();
+    
+    UIGraphicsEndImageContext();
+
     return finalImage;
 }
 
@@ -233,7 +263,7 @@
 #pragma mark - Private methods - Rotation
 
 - (void)rotateToOrientation:(UIImageOrientation)orientation
-{
+{    
     CGFloat newWidth    = self.imageView.image.size.height;
     CGFloat newHeight   = self.imageView.image.size.width;
     CGRect frame        = CGRectMake(0.0f, 0.0f, newWidth, newHeight);
@@ -326,7 +356,7 @@
         _imageView              =       [[UIImageView alloc] initWithImage:nil];
         _imageView.contentMode  =       UIViewContentModeCenter;
         _imageView.contentScaleFactor = [UIScreen mainScreen].scale;
-
+        
         [self addSubview:_imageView];
     }
     

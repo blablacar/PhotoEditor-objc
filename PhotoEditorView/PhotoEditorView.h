@@ -50,7 +50,7 @@
 
 /**
  *
- * Get the image cropped.
+ * Get the image cropped using scale factor.
  *
  * @warning It will be a squared image cropped from the mask zone
  *
@@ -60,5 +60,16 @@
  *
  */
 - (UIImage *)getFinalImageWithScreenScale:(BOOL)screenScale;
+
+/**
+ *
+ * Get the most optimized image cropped, depending on the original one
+ *
+ * @warning Can give huge images. Be careful
+ *
+ * @return UIImage  image cropped
+ *
+ */
+- (UIImage *)getFinalFullImage;
 
 @end
