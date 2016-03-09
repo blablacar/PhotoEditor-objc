@@ -66,7 +66,7 @@
         
         self.imageView.frame    = frame;
         self.imageView.center   = CGPointMake(self.frame.size.width/2, self.frame.size.height/2);
-        self.imageView.image    = [self.imageView.image imageResizedToSize:frame.size]; // :-(
+        self.imageView.image    = [self.imageView.image imageResizedToSize:frame.size];
     }
 }
 
